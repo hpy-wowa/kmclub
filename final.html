@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>멀티 이미지 다운로더</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        textarea, input { width: 100%; margin-bottom: 10px; padding: 10px; }
+        button { padding: 10px 20px; cursor: pointer; }
+        #status { margin-top: 20px; }
+        #folderPath { font-weight: bold; color: blue; margin-top: 10px; word-break: break-all; }
+        #log { margin-top: 20px; white-space: pre-wrap; font-size: 14px; color: green; }
+    </style>
+</head>
+<body>
+    <h1>여러 이미지 URL 한 번에 다운로드</h1>
+    <button onclick="chooseFolder()">폴더 선택</button>
+    <p id="folderPath">선택한 폴더: 없음</p>
+    <input type="text" id="customFileName" placeholder="저장할 파일명 입력 (예: IMG)">
+    <textarea id="imageUrls" placeholder="이미지 URL 또는 HTML 코드를 입력하세요"></textarea>
+    <button onclick="extractUrlsAndDownload()">이미지 다운로드</button>
+    <p id="status"></p>
+    <h3>파일명 변경 로그:</h3>
+    <div id="log"></div>
+
+<script>
+
+    //거진 최종본
+    
+    let directoryHandle = null;
+    let sessionCount = 0; // 같은 세션 내에서 저장된 횟수 추적
+
+    async function chooseFolder() {
+        try {
+            directoryHandle = await window.showDirectoryPicker();
+            document.getElementById("folderPath").innerText = `선택한 폴더: ${directoryHandle.name}`;
+            alert("폴더 선택 완료!");
+        } catch (err) {
+            console.error("폴더 선택 실패:", err);
+            alert("폴더 선택에 실패했습니다. 다시 시도해주세요.");
+        }
+    }
+
+    async function checkFileExists(fileName) {
+        try {
+            await directoryHandle.getFileHandle(fileName);
+            return true; 
+        } catch {
+            return false;
+        }
+    }
+
+    function extractUrlsAndDownload() {
+        const inputText = document.getElementById("imageUrls").value.trim();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(inputText, "text/html");
+
+        let inputUrls = inputText.split(/(?=https?:\/\/)/g).filter(url => url.startsWith("http"));
+        let extractedUrls = [];
+
+        doc.querySelectorAll("img").forEach(img => {
+            if (img.src.startsWith("http")) {
+                extractedUrls.push(img.src);
+            }
+        });
+
+        let urls = [...inputUrls, ...extractedUrls]; // 두 리스트를 병합하여 순서를 유지
+
+        sessionCount++; // 동일 세션에서 몇 번째 다운로드인지 증가
+        downloadImages(urls);
+    }
+
+    async function downloadImages(urls) {
+        const status = document.getElementById("status");
+        const logElement = document.getElementById("log");
+        let customFileName = document.getElementById("customFileName").value.trim();
+        logElement.innerText = "";
+
+        if (!customFileName) {
+            customFileName = "IMG";
+        } else {
+            customFileName = customFileName.replace(/\s+/g, "_");
+        }
+
+        if (!directoryHandle) {
+            alert("먼저 저장할 폴더를 선택해주세요!");
+            return;
+        }
+
+        if (urls.length === 0) {
+            alert("URL을 입력해주세요!");
+            return;
+        }
+
+        status.innerText = "이미지 다운로드 중... 🚀";
+
+        let fileIndex = 1; // 파일명 숫자 카운팅을 별도로 관리
+
+        for (let i = 0; i < urls.length; i++) {
+            const url = urls[i].trim();
+            if (url) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`이미지 다운로드 실패: ${response.status}`);
+
+                    const blob = await response.blob();
+                    const originalFileName = url.split("/").pop().split("?")[0] || "unknown";
+                    const fileExtension = originalFileName.split(".").pop() || "jpg";
+                    
+                    let baseFileName = `${customFileName}_${fileIndex}`; // i + 1 대신 fileIndex 사용
+                    let fileName = `${baseFileName}.${fileExtension}`;
+                    let count = 0;
+
+                    while (await checkFileExists(fileName)) {
+                        fileName = `${baseFileName}(${count}).${fileExtension}`;
+                        count++;
+                    }
+
+                    const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+
+                    logElement.innerText += `✔ ${originalFileName} → ${fileName}\n`;
+
+                    fileIndex++; // 다음 파일을 위해 fileIndex 증가
+                } catch (error) {
+                    console.error(`이미지 다운로드 실패 (${url}):`, error);
+                }
+            }
+        }
+
+        status.innerText = "이미지 다운로드 완료! 🎉";
+    }
+</script>
+
+</body>
+</html>
