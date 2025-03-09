@@ -40,9 +40,13 @@
             for (let file of event.dataTransfer.files) {
                 fileNames.push(file.name);
             }
-            fileNames.sort(); // 파일명을 오름차순으로 정렬
+            fileNames.sort(naturalSort); // 자연 정렬 적용
             updateFileList();
         });
+
+        function naturalSort(a, b) {
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+        }
 
         function updateFileList() {
             let fileList = document.getElementById("fileList").querySelector("ul");
