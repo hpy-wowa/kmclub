@@ -6,7 +6,7 @@
     <title>멀티 이미지 다운로더</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
-        textarea, input { width: 100%; margin-bottom: 10px; padding: 10px; }
+        textarea, input, select { width: 100%; margin-bottom: 10px; padding: 10px; }
         button { padding: 10px 20px; cursor: pointer; }
         #status { margin-top: 20px; }
         #folderPath { font-weight: bold; color: blue; margin-top: 10px; word-break: break-all; }
@@ -21,6 +21,10 @@
     <button onclick="chooseFolder()">폴더 선택</button>
     <p id="folderPath">선택한 폴더: 없음</p>
     <input type="text" id="customFileName" placeholder="저장할 파일명 입력 (예: IMG)">
+    <select id="fileNameOption">
+        <option value="custom">입력한 파일명 사용</option>
+        <option value="original">원본 파일명 사용</option>
+    </select>
     <textarea id="imageUrls" placeholder="이미지 URL 또는 HTML 코드를 입력하세요"></textarea>
     <button onclick="extractUrlsAndDownload()">이미지 다운로드</button>
     <p id="status"></p>
@@ -28,9 +32,6 @@
     <div id="log"></div>
 
 <script>
-
-    //거진 최종본
-    
     let directoryHandle = null;
     let sessionCount = 0; // 같은 세션 내에서 저장된 횟수 추적
 
@@ -78,6 +79,7 @@
         const status = document.getElementById("status");
         const logElement = document.getElementById("log");
         let customFileName = document.getElementById("customFileName").value.trim();
+        let fileNameOption = document.getElementById("fileNameOption").value;
         logElement.innerText = "";
 
         if (!customFileName) {
@@ -108,10 +110,16 @@
                     if (!response.ok) throw new Error(`이미지 다운로드 실패: ${response.status}`);
 
                     const blob = await response.blob();
-                    const originalFileName = url.split("/").pop().split("?")[0] || "unknown";
-                    const fileExtension = originalFileName.split(".").pop() || "jpg";
+                    let originalFileName = url.split("/").pop().split("?")[0] || "unknown.jpg";
+                    let fileExtension = "jpg";
                     
-                    let baseFileName = `${customFileName}_${fileIndex}`; // i + 1 대신 fileIndex 사용
+                    if (originalFileName.includes(".")) {
+                        const splitName = originalFileName.lastIndexOf(".");
+                        fileExtension = originalFileName.substring(splitName + 1);
+                        originalFileName = originalFileName.substring(0, splitName);
+                    }
+                    
+                    let baseFileName = fileNameOption === "original" ? originalFileName.replace(/\s+/g, "_") : `${customFileName}_${fileIndex}`;
                     let fileName = `${baseFileName}.${fileExtension}`;
                     let count = 0;
 
@@ -125,7 +133,7 @@
                     await writable.write(blob);
                     await writable.close();
 
-                    logElement.innerText += `✔ ${originalFileName} → ${fileName}\n`;
+                    logElement.innerText += `✔ ${url} → ${fileName}\n`;
 
                     fileIndex++; // 다음 파일을 위해 fileIndex 증가
                 } catch (error) {
@@ -137,6 +145,5 @@
         status.innerText = "이미지 다운로드 완료! 🎉";
     }
 </script>
-
 </body>
 </html>
