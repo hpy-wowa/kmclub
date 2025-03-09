@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 코드 자동완성</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        textarea, input { width: 100%; margin-bottom: 10px; padding: 10px; }
+        button { padding: 10px 20px; cursor: pointer; }
+        #dropZone { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-bottom: 10px; }
+        #outputCode { white-space: pre-wrap; background: #f4f4f4; padding: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>이미지 파일을 드래그 앤 드롭하여 HTML 코드 자동완성</h1>
+    <div id="dropZone">여기에 이미지를 드래그 앤 드롭하세요</div>
+    <textarea id="htmlTemplate" placeholder="HTML 코드를 입력하세요. ^|^ 를 파일명으로 대체합니다."></textarea>
+    <label><input type="checkbox" id="useWrapper"> 앞과 뒤에 코드 추가</label>
+    <textarea id="prefixCode" placeholder="앞에 붙일 코드 (옵션)"></textarea>
+    <textarea id="suffixCode" placeholder="뒤에 붙일 코드 (옵션)"></textarea>
+    <button onclick="generateCode()">코드 생성</button>
+    <h3>자동완성된 코드:</h3>
+    <pre id="outputCode"></pre>
+
+    <script>
+        let fileNames = [];
+
+        document.getElementById("dropZone").addEventListener("dragover", function(event) {
+            event.preventDefault();
+        });
+
+        document.getElementById("dropZone").addEventListener("drop", function(event) {
+            event.preventDefault();
+            fileNames = [];
+            for (let file of event.dataTransfer.files) {
+                fileNames.push(file.name);
+            }
+            fileNames.sort(); // 파일명을 오름차순으로 정렬
+            alert("파일이 추가되었습니다: " + fileNames.join(", "));
+        });
+
+        function generateCode() {
+            let template = document.getElementById("htmlTemplate").value;
+            let useWrapper = document.getElementById("useWrapper").checked;
+            let prefix = document.getElementById("prefixCode").value;
+            let suffix = document.getElementById("suffixCode").value;
+            let result = "";
+            
+            for (let i = 0; i < fileNames.length; i++) {
+                result += template.replace("^|^", fileNames[i]) + "\n";
+            }
+            
+            if (useWrapper) {
+                result = prefix + "\n" + result.trim() + "\n" + suffix; // trim() 사용하여 불필요한 줄바꿈 제거
+            }
+
+            document.getElementById("outputCode").textContent = result;
+        }
+    </script>
+</body>
+</html>
