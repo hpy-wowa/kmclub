@@ -10,11 +10,15 @@
         button { padding: 10px 20px; cursor: pointer; }
         #dropZone { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-bottom: 10px; }
         #outputCode { white-space: pre-wrap; background: #f4f4f4; padding: 10px; border: 1px solid #ccc; }
+        #fileList { margin-top: 10px; padding: 10px; background: #f9f9f9; border: 1px solid #ccc; }
+        #fileList ul { list-style: none; padding: 0; }
+        #fileList li { padding: 5px 0; }
     </style>
 </head>
 <body>
     <h1>이미지 파일을 드래그 앤 드롭하여 HTML 코드 자동완성</h1>
     <div id="dropZone">여기에 이미지를 드래그 앤 드롭하세요</div>
+    <div id="fileList"><strong>추가된 파일:</strong> <ul></ul></div>
     <textarea id="htmlTemplate" placeholder="HTML 코드를 입력하세요. ^|^ 를 파일명으로 대체합니다."></textarea>
     <label><input type="checkbox" id="useWrapper"> 앞과 뒤에 코드 추가</label>
     <textarea id="prefixCode" placeholder="앞에 붙일 코드 (옵션)"></textarea>
@@ -37,8 +41,18 @@
                 fileNames.push(file.name);
             }
             fileNames.sort(); // 파일명을 오름차순으로 정렬
-            alert("파일이 추가되었습니다: " + fileNames.join(", "));
+            updateFileList();
         });
+
+        function updateFileList() {
+            let fileList = document.getElementById("fileList").querySelector("ul");
+            fileList.innerHTML = "";
+            fileNames.forEach(name => {
+                let li = document.createElement("li");
+                li.textContent = name;
+                fileList.appendChild(li);
+            });
+        }
 
         function generateCode() {
             let template = document.getElementById("htmlTemplate").value;
