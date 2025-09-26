@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>김지명 옵션 조합 생성기</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #ffccff, #cc99ff);
+      overflow-x: hidden;
+    }
+
+    h2 {
+      text-align: center;
+      color: white;
+      text-shadow: 0 0 10px #fff, 0 0 20px #ff99ff, 0 0 30px #ff66cc;
+      font-size: 2.5em;
+      margin-bottom: 30px;
+    }
+
+    label {
+      color: #fff;
+      font-weight: bold;
+      text-shadow: 0 0 5px #fff;
+    }
+
+    /* input -> textarea 로 변경, 여러줄 입력 가능 */
+    textarea.input-text {
+      width: 300px;
+      margin-bottom: 15px;
+      display: block;
+      padding: 10px;
+      border: 2px solid #ff99cc;
+      border-radius: 10px;
+      outline: none;
+      box-shadow: 0 0 10px #ff99cc;
+      background-color: #fff0fa;
+      resize: none; /* 사용자가 임의로 크기 조절 불가 */
+      overflow-y: auto;
+      max-height: 150px; /* 너무 크면 스크롤 */
+      font-family: inherit;
+      font-size: 1em;
+      line-height: 1.4em;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 18px;
+      font-weight: bold;
+      background: linear-gradient(45deg, #ff66cc, #cc66ff);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      box-shadow: 0 0 10px #ff66cc, 0 0 20px #cc66ff;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px #ff99ff, 0 0 30px #cc66ff;
+    }
+
+    .output-container {
+      display: flex;
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 300px;
+      font-family: monospace;
+      white-space: pre;
+      background: #fff0f9;
+      border: 2px solid #ff99cc;
+      border-radius: 10px;
+      box-shadow: inset 0 0 10px #ffccff;
+      padding: 10px;
+      resize: none;
+    }
+
+    /* 💖 애니메이션 배경 요소들 💖 */
+    .animated-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: -1;
+    }
+
+    .shape {
+      position: absolute;
+      font-size: 24px;
+      animation: float 10s linear infinite;
+      color: #fff;
+      opacity: 0.6;
+      filter: drop-shadow(0 0 6px #ff66cc);
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-10vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    /* 다양한 하트와 별 위치 */
+    .shape:nth-child(1) { left: 10%; font-size: 30px; animation-duration: 12s; }
+    .shape:nth-child(2) { left: 25%; font-size: 20px; animation-duration: 14s; }
+    .shape:nth-child(3) { left: 40%; font-size: 26px; animation-duration: 10s; }
+    .shape:nth-child(4) { left: 60%; font-size: 22px; animation-duration: 11s; }
+    .shape:nth-child(5) { left: 75%; font-size: 28px; animation-duration: 13s; }
+    .shape:nth-child(6) { left: 85%; font-size: 24px; animation-duration: 15s; }
+
+  </style>
+</head>
+<body>
+
+  <!-- 💫 반짝이는 하트와 별 애니메이션 배경 💫 -->
+  <div class="animated-bg">
+    <div class="shape">💖</div>
+    <div class="shape">✨</div>
+    <div class="shape">💫</div>
+    <div class="shape">⭐</div>
+    <div class="shape">🌟</div>
+    <div class="shape">💖</div>
+  </div>
+
+  <h2>김지명 옵션 조합 생성기 뀨</h2>
+
+  <label>상위 옵션:</label>
+  <textarea id="input1" class="input-text" placeholder="예: 사과,배,김치"></textarea>
+  
+  <label>중위 옵션:</label>
+  <textarea id="input2" class="input-text" placeholder="예: 빨강,파랑,노랑"></textarea>
+  
+  <label>하위 옵션:</label>
+  <textarea id="input3" class="input-text" placeholder="예: 10,20,30"></textarea>
+  
+  <button onclick="generateCombinations()">🌈 생성하기 💫</button>
+
+  <div id="tableOutput" style="margin-top: 40px;"></div>
+  <button onclick="copyTable()" style="margin-top: 10px;">📋 복사해서 엑셀에 붙이기</button>
+
+  <textarea id="copyBuffer" style="position:absolute; left:-9999px;"></textarea>
+
+  <script>
+    // 입력란 자동 높이 조절 함수
+    function autoResizeTextarea(textarea) {
+      textarea.style.height = 'auto';
+      const maxHeight = 150; // px
+      if (textarea.scrollHeight > maxHeight) {
+        textarea.style.height = maxHeight + 'px';
+        textarea.style.overflowY = 'auto';
+      } else {
+        textarea.style.height = textarea.scrollHeight + 'px';
+        textarea.style.overflowY = 'hidden';
+      }
+    }
+
+    // 페이지 로드시와 입력시 자동 높이 적용
+    document.querySelectorAll('.input-text').forEach(textarea => {
+      autoResizeTextarea(textarea);
+      textarea.addEventListener('input', () => autoResizeTextarea(textarea));
+    });
+
+    function generateCombinations() {
+      const input1 = document.getElementById('input1').value;
+      const input2 = document.getElementById('input2').value;
+      const input3 = document.getElementById('input3').value;
+
+      // , \n / . 를 모두 구분자로 사용하기 위해 정규식 split
+      const splitter = /[,\n\/\.]+/;
+
+      const inputs = [input1, input2, input3].filter(i => i !== '');
+      const keywords = inputs.map(i => i.split(splitter).map(s => s.trim()).filter(Boolean));
+
+      let results = [];
+
+      function combine(prefix, depth) {
+        if (depth === keywords.length) {
+          results.push(prefix.join('^|^'));
+          return;
+        }
+        for (let word of keywords[depth]) {
+          combine([...prefix, word], depth + 1);
+        }
+      }
+
+      if (keywords.length > 0) {
+        combine([], 0);
+      }
+
+      const leftMultiline = results.join('\n');
+      const rightMultiline = results.map(() => '0').join('\n');
+
+      // 테이블 출력 (절대 출력형태 변경하지 않음)
+      const tableHTML = `
+      <table style="border-collapse: collapse; margin-top: 20px;">
+        <tr>
+          <td style="border: 2px solid #cc66ff; padding: 10px; white-space: pre-line; background: #fff0fa;">${leftMultiline.replace(/\n/g, '<br>')}</td>
+          <td style="border: 2px solid #cc66ff; padding: 10px; white-space: pre-line; background: #f9f0ff;">${rightMultiline.replace(/\n/g, '<br>')}</td>
+          <td style="border: 2px solid #cc66ff; padding: 10px; white-space: pre-line; background: #f9f0ff;">${rightMultiline.replace(/\n/g, '<br>')}</td>
+          <td style="border: 2px solid #cc66ff; padding: 10px; white-space: pre-line; background: #f9f0ff;">${rightMultiline.replace(/\n/g, '<br>')}</td>
+        </tr>
+      </table>
+      `;
+      document.getElementById('tableOutput').innerHTML = tableHTML;
+
+      // 복사용 문자열 준비 (한 행에 탭 구분 2열, 각 행은 \r\n)
+      const tsvText = `"${leftMultiline}"\t"${rightMultiline}"\t"${rightMultiline}"\t"${rightMultiline}"`;
+      document.getElementById('copyBuffer').value = tsvText;
+
+      // 생성 후 자동 복사 실행
+      copyTable();
+    }
+
+    function copyTable() {
+      const copyArea = document.getElementById('copyBuffer');
+      copyArea.select();
+      copyArea.setSelectionRange(0, 99999); // for mobile
+      document.execCommand('copy');
+    }
+  </script>
+</body>
+</html>
